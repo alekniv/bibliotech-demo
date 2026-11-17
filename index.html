@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiblioTech — Demo Interactiva de Presentación</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+  @media (max-width: 640px) {
+    header > div:first-child { height: auto; flex-wrap: wrap; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+    header > div:first-child p.text-xs { display: none; }
+    header > div:first-child > div.bg-slate-50 { width: 100%; justify-content: space-between; }
+    header > div:first-child > div.bg-slate-50 > span { display: none; }
+    header > div:first-child > div.bg-slate-50 > button { flex: 1; }
+    header > div:nth-of-type(2) { overflow-x: auto; gap: 18px; white-space: nowrap; scrollbar-width: none; }
+    header > div:nth-of-type(2) > button { flex-shrink: 0; }
+  }
+
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header Superior -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          <i class="fa-solid fa-book-open-reader"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-900 text-base">Biblio<span class="text-blue-600">Tech</span></span>
+            <span class="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">Demo Final 2026</span>
+          </div>
+          <p class="text-xs text-slate-500">Programación de Vanguardia • Universidad de la Ciudad</p>
+        </div>
+      </div>
+
+      <!-- Selector de Rol Activo para simular permisos -->
+      <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1 rounded-lg">
+        <span class="text-xs text-slate-500 font-medium px-2">Simular Rol:</span>
+        <button onclick="setRole('estudiante')" id="btn-role-estudiante" class="px-2.5 py-1 text-xs rounded-md font-medium transition bg-white text-blue-600 shadow-sm border border-slate-200">
+          Estudiante
+        </button>
+        <button onclick="setRole('docente')" id="btn-role-docente" class="px-2.5 py-1 text-xs rounded-md font-medium transition text-slate-600 hover:text-slate-900">
+          Docente
+        </button>
+        <button onclick="setRole('bibliotecario')" id="btn-role-bibliotecario" class="px-2.5 py-1 text-xs rounded-md font-medium transition text-slate-600 hover:text-slate-900">
+          Bibliotecario
+        </button>
+      </div>
+    </div>
+
+    <!-- Navegación por Pestañas -->
+    <div class="max-w-6xl mx-auto px-4 flex gap-6 text-sm">
+      <button onclick="showTab('catalogo')" id="tab-catalogo" class="py-3 px-1 tab-active transition flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass"></i> Catálogo y Disponibilidad
+      </button>
+      <button onclick="showTab('mostrador')" id="tab-mostrador" class="py-3 px-1 text-slate-500 hover:text-slate-800 transition flex items-center gap-2">
+        <i class="fa-solid fa-cash-register"></i> Mostrador de Préstamos
+      </button>
+      <button onclick="showTab('mis-prestamos')" id="tab-mis-prestamos" class="py-3 px-1 text-slate-500 hover:text-slate-800 transition flex items-center gap-2">
+        <i class="fa-solid fa-user-tag"></i> Panel del Lector
+        <span id="badge-cupo" class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">1/3</span>
+      </button>
+      <button onclick="showTab('observabilidad')" id="tab-observabilidad" class="py-3 px-1 text-slate-500 hover:text-slate-800 transition flex items-center gap-2 ml-auto">
+        <i class="fa-solid fa-chart-line text-emerald-600"></i> Observabilidad en Vivo
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenido Central -->
+  <main class="max-w-6xl w-full mx-auto px-4 py-6 flex-1">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 flex items-center gap-3 transition duration-300">
+      <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toast-msg" class="text-sm font-medium">Acción completada</span>
+    </div>
+
+    <!-- 1. VISTA: CATÁLOGO -->
+    <section id="view-catalogo" class="space-y-5">
+      <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div class="relative w-full sm:w-96">
+          <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
+          <input type="text" id="input-buscar" oninput="filtrarLibros()" placeholder="Buscar por título, autor o tema..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+        </div>
+        <div class="flex items-center gap-2 text-xs w-full sm:w-auto">
+          <span class="text-slate-500 font-medium">Filtrar:</span>
+          <button onclick="setFilter('todos')" class="px-3 py-1.5 rounded-md bg-slate-200 text-slate-800 font-semibold" id="flt-todos">Todos</button>
+          <button onclick="setFilter('disponible')" class="px-3 py-1.5 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50" id="flt-disponible">Con ejemplar libre</button>
+          <button onclick="setFilter('digital')" class="px-3 py-1.5 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50" id="flt-digital">Digitales</button>
+        </div>
+      </div>
+
+      <!-- Grid de Libros -->
+      <div id="grid-libros" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Renderizado dinámico en JS -->
+      </div>
+    </section>
+
+    <!-- 2. VISTA: MOSTRADOR (Bibliotecario) -->
+    <section id="view-mostrador" class="hidden space-y-5">
+      <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-2.5 rounded-lg flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-amber-600"></i>
+          <span><strong>Terminal de Mostrador:</strong> Reservado para rol <code>Bibliotecario</code>. Registra salidas y recepciones físicas de ejemplares con validación de código HTTP en tiempo real.</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Formulario Despacho Rápido -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-barcode text-blue-600"></i> Registrar Nuevo Préstamo
+          </h3>
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">ID del Lector</label>
+              <input type="number" id="form-lector-id" value="152" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <span class="text-[10px] text-slate-400">152: Estudiante (Cupo máx: 3) • 840: Docente (Cupo máx: 5)</span>
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Código del Ejemplar Físico</label>
+              <input type="text" id="form-ejemplar-codigo" placeholder="Ej: BD-0031" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase">
+            </div>
+            <button onclick="despacharPrestamoForm()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition text-xs flex items-center justify-center gap-2 shadow-sm">
+              <i class="fa-solid fa-check"></i> Despachar Préstamo
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de Préstamos Activos -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Préstamos Activos en Circulación</h3>
+            <span class="text-xs text-slate-500" id="total-activos-txt">3 préstamos registrados</span>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-100">
+                <tr>
+                  <th class="p-3">Código</th>
+                  <th class="p-3">Libro</th>
+                  <th class="p-3">Lector</th>
+                  <th class="p-3">Vencimiento</th>
+                  <th class="p-3">Estado</th>
+                  <th class="p-3 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-prestamos-body" class="divide-y divide-slate-100">
+                <!-- Dinámico -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. VISTA: MIS PRÉSTAMOS / PANEL LECTOR -->
+    <section id="view-mis-prestamos" class="hidden space-y-5">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+            JS
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base" id="perfil-nombre">Julieta Sdrubolini</h3>
+            <p class="text-xs text-slate-500" id="perfil-detalle">Estudiante regular • Cupo: 3 libros por 7 días (Patrón Strategy)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-6 text-center border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-6 w-full sm:w-auto justify-around">
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium uppercase">Préstamos</p>
+            <p class="text-xl font-bold text-blue-600" id="lector-prestamos-count">1 / 3</p>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium uppercase">Reservas en cola</p>
+            <p class="text-xl font-bold text-amber-600" id="lector-reservas-count">1</p>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium uppercase">Vencidos</p>
+            <p class="text-xl font-bold text-red-600">1</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Mis Préstamos -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-book-bookmark text-blue-600"></i> Libros en mi poder
+          </h4>
+          <div id="mis-prestamos-list" class="space-y-2.5">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Mis Reservas -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Reservas en espera
+          </h4>
+          <div id="mis-reservas-list" class="space-y-2.5">
+            <!-- Dinámico -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. VISTA: OBSERVABILIDAD EN VIVO (Explicación para examen) -->
+    <section id="view-observabilidad" class="hidden space-y-5">
+      <div class="bg-slate-900 text-slate-100 p-5 rounded-xl border border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+              <i class="fa-solid fa-heart-pulse text-rose-500"></i> Telemetría y Métricas en Tiempo Real (Prometheus & Grafana)
+            </h3>
+            <p class="text-xs text-slate-400">Muestra cómo las acciones de la demo impactan en los contadores y logs estructurados del sistema.</p>
+          </div>
+          <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-1 rounded-full font-mono">
+            target: up = 1 (notas_api)
+          </span>
+        </div>
+
+        <!-- Métricas Rápidas -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="bg-slate-800/60 p-3 rounded-lg border border-slate-700">
+            <p class="text-[10px] text-slate-400 uppercase font-mono">http_requests_total</p>
+            <p class="text-xl font-bold text-blue-400 font-mono" id="metric-http-total">42</p>
+          </div>
+          <div class="bg-slate-800/60 p-3 rounded-lg border border-slate-700">
+            <p class="text-[10px] text-slate-400 uppercase font-mono">Tasa Errores 5xx</p>
+            <p class="text-xl font-bold text-emerald-400 font-mono" id="metric-5xx">0.0 %</p>
+          </div>
+          <div class="bg-slate-800/60 p-3 rounded-lg border border-slate-700">
+            <p class="text-[10px] text-slate-400 uppercase font-mono">Latencia p95</p>
+            <p class="text-xl font-bold text-amber-400 font-mono" id="metric-latency">42 ms</p>
+          </div>
+          <div class="bg-slate-800/60 p-3 rounded-lg border border-slate-700">
+            <p class="text-[10px] text-slate-400 uppercase font-mono">Mails Encolados</p>
+            <p class="text-xl font-bold text-indigo-400 font-mono" id="metric-mails">3</p>
+          </div>
+        </div>
+
+        <!-- Consola de Logs JSON en Vivo -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs text-slate-400 font-mono">
+            <span>Últimos Logs Estructurados (docker compose logs api):</span>
+            <button onclick="limpiarLogs()" class="text-blue-400 hover:underline">Limpiar consola</button>
+          </div>
+          <div id="live-console" class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-300 h-44 overflow-y-auto space-y-1">
+            <!-- Logs dinámicos -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Detalle del Libro y Reserva -->
+  <div id="modal-detalle" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-start">
+        <div>
+          <span id="modal-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 uppercase">Libro Físico</span>
+          <h3 id="modal-titulo" class="font-bold text-slate-900 text-base mt-1">Título del Libro</h3>
+          <p id="modal-autor" class="text-xs text-slate-500">Autor • Año</p>
+        </div>
+        <button onclick="cerrarModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <h4 class="font-semibold text-slate-700 mb-2">Estado de Ejemplares Físicos (Relación 1 a N)</h4>
+          <div id="modal-ejemplares" class="space-y-1.5">
+            <!-- Dinámico -->
+          </div>
+        </div>
+        <div id="modal-reserva-box" class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 hidden">
+          <p class="font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-exclamation text-amber-600"></i> No quedan copias disponibles ahora
+          </p>
+          <p class="mt-1 text-[11px] text-amber-800">Podés anotarte en la cola de reservas. Cuando otro lector devuelva un ejemplar, el sistema te avisará automáticamente por mail.</p>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2" id="modal-actions">
+        <!-- Botones dinámicos según disponibilidad -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400">
+    BiblioTech • Prototipo Frontend SPA para Defensa Oral • Alejandro Silva, Julieta Sdrubolini, María Diamante, Vanesa Daaluicis
+  </footer>
+
+  <!-- Script Lógica de Negocio y Simulación Frontend -->
+  <script>
+    // Estado del sistema en memoria
+    let currentRole = 'estudiante';
+    let filterType = 'todos';
+    let httpCount = 42;
+    let mailCount = 3;
+
+    // Catálogo con distinción Material -> LibroFisico (con ejemplares) y RecursoDigital
+    let libros = [
+      {
+        id: 1,
+        titulo: "Bases de datos",
+        autor: "E. F. Codd",
+        tipo: "fisico",
+        anio: 2022,
+        ubicacion: "Estante A-2",
+        ejemplares: [
+          { codigo: "BD-0031", estado: "disponible" },
+          { codigo: "BD-0032", estado: "prestado" }
+        ],
+        reservasCola: []
+      },
+      {
+        id: 2,
+        titulo: "Algoritmos I",
+        autor: "N. Wirth",
+        tipo: "fisico",
+        anio: 2020,
+        ubicacion: "Estante B-1",
+        ejemplares: [
+          { codigo: "ALG-101", estado: "prestado" }
+        ],
+        reservasCola: [
+          { lectorId: 152, nombre: "Julieta Sdrubolini", fecha: "2026-10-21" }
+        ]
+      },
+      {
+        id: 3,
+        titulo: "Redes de datos",
+        autor: "A. Tanenbaum",
+        tipo: "digital",
+        anio: 2024,
+        enlace: "https://biblioteca.universidad.edu.ar/recursos/redes.pdf",
+        ejemplares: [],
+        reservasCola: []
+      },
+      {
+        id: 4,
+        titulo: "Arquitectura de computadoras",
+        autor: "Patterson & Hennessy",
+        tipo: "fisico",
+        anio: 2021,
+        ubicacion: "Estante C-3",
+        ejemplares: [
+          { codigo: "ARQ-201", estado: "disponible" },
+          { codigo: "ARQ-202", estado: "disponible" }
+        ],
+        reservasCola: []
+      }
+    ];
+
+    let prestamosActivos = [
+      { id: 871, libroId: 1, titulo: "Bases de datos", codigo: "BD-0032", lectorId: 104, lector: "Martín Gómez", tipoLector: "estudiante", vence: "2026-11-12", diasRestantes: 6 },
+      { id: 872, libroId: 2, titulo: "Algoritmos I", codigo: "ALG-101", lectorId: 201, lector: "Carlos Bianchi", tipoLector: "docente", vence: "2026-11-08", diasRestantes: 2 },
+      { id: 873, libroId: 4, titulo: "Arquitectura de computadoras", codigo: "ARQ-202", lectorId: 152, lector: "Julieta Sdrubolini", tipoLector: "estudiante", vence: "2026-11-05", diasRestantes: -1 } // vencido
+    ];
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const text = document.getElementById('toast-msg');
+      text.innerText = msg;
+      icon.className = isError ? "fa-solid fa-triangle-exclamation text-rose-400" : "fa-solid fa-circle-check text-emerald-400";
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function addLog(level, route, status, msg) {
+      httpCount++;
+      document.getElementById('metric-http-total').innerText = httpCount;
+      const consoleBox = document.getElementById('live-console');
+      const reqId = "req_" + Math.random().toString(36).substring(2, 8);
+      const time = new Date().toISOString().substring(11, 19);
+      const color = status >= 500 ? 'text-rose-400' : status >= 400 ? 'text-amber-400' : 'text-emerald-400';
+      
+      const logLine = document.createElement('div');
+      logLine.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="font-bold ${color}">${level.toUpperCase()}</span> <span class="text-blue-400">${route}</span> <span class="${color}">${status}</span> <span class="text-slate-400">${reqId}</span> — ${msg}`;
+      consoleBox.prepend(logLine);
+    }
+
+    function limpiarLogs() {
+      document.getElementById('live-console').innerHTML = '';
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      ['estudiante', 'docente', 'bibliotecario'].forEach(r => {
+        const btn = document.getElementById('btn-role-' + r);
+        if (r === role) {
+          btn.className = "px-2.5 py-1 text-xs rounded-md font-medium transition bg-white text-blue-600 shadow-sm border border-slate-200";
+        } else {
+          btn.className = "px-2.5 py-1 text-xs rounded-md font-medium transition text-slate-600 hover:text-slate-900";
+        }
+      });
+
+      const perfilDetalle = document.getElementById('perfil-detalle');
+      const badgeCupo = document.getElementById('badge-cupo');
+      if (role === 'docente') {
+        perfilDetalle.innerText = "Docente titular • Cupo: 5 libros por 15 días (Patrón Strategy)";
+        badgeCupo.innerText = "1/5";
+      } else if (role === 'estudiante') {
+        perfilDetalle.innerText = "Estudiante regular • Cupo: 3 libros por 7 días (Patrón Strategy)";
+        badgeCupo.innerText = "1/3";
+      } else {
+        perfilDetalle.innerText = "Personal Bibliotecario • Acceso total al mostrador y control de inventario";
+        badgeCupo.innerText = "Operador";
+      }
+
+      showToast(`Rol cambiado a: ${role.toUpperCase()}`);
+      addLog("info", "/api/auth/switch-role", 200, `Contexto de usuario cambiado a rol '${role}'`);
+      renderCatalogo();
+    }
+
+    function showTab(tab) {
+      ['catalogo', 'mostrador', 'mis-prestamos', 'observabilidad'].forEach(t => {
+        document.getElementById('view-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('tab-active');
+        document.getElementById('tab-' + t).classList.add('text-slate-500');
+      });
+
+      document.getElementById('view-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).classList.add('tab-active');
+      document.getElementById('tab-' + tab).classList.remove('text-slate-500');
+
+      if (tab === 'catalogo') renderCatalogo();
+      if (tab === 'mostrador') renderMostrador();
+      if (tab === 'mis-prestamos') renderPanelLector();
+    }
+
+    function setFilter(type) {
+      filterType = type;
+      ['todos', 'disponible', 'digital'].forEach(t => {
+        const btn = document.getElementById('flt-' + t);
+        if (t === type) {
+          btn.className = "px-3 py-1.5 rounded-md bg-slate-200 text-slate-800 font-semibold";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50";
+        }
+      });
+      renderCatalogo();
+    }
+
+    function renderCatalogo() {
+      const grid = document.getElementById('grid-libros');
+      grid.innerHTML = '';
+      const query = document.getElementById('input-buscar').value.toLowerCase();
+
+      libros.forEach(libro => {
+        const coincideQuery = libro.titulo.toLowerCase().includes(query) || libro.autor.toLowerCase().includes(query);
+        let coincideFiltro = true;
+
+        const libres = libro.tipo === 'fisico' ? libro.ejemplares.filter(e => e.estado === 'disponible').length : 0;
+        if (filterType === 'disponible' && (libro.tipo !== 'fisico' || libres === 0)) coincideFiltro = false;
+        if (filterType === 'digital' && libro.tipo !== 'digital') coincideFiltro = false;
+
+        if (coincideQuery && coincideFiltro) {
+          const card = document.createElement('div');
+          card.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between";
+
+          let estadoBadge = '';
+          let accionBtn = '';
+
+          if (libro.tipo === 'digital') {
+            estadoBadge = '<span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Recurso Digital</span>';
+            accionBtn = `<a href="${libro.enlace}" target="_blank" class="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 rounded-lg text-xs transition">Abrir Enlace Externo</a>`;
+          } else {
+            if (libres > 0) {
+              estadoBadge = `<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded">${libres} ejemplar(es) libre(s)</span>`;
+              accionBtn = `<button onclick="abrirDetalle(${libro.id})" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 rounded-lg text-xs transition">Ver Ejemplares / Prestar</button>`;
+            } else {
+              estadoBadge = `<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded">0 libres (${libro.reservasCola.length} en espera)</span>`;
+              accionBtn = `<button onclick="abrirDetalle(${libro.id})" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-1.5 rounded-lg text-xs transition">Anotarme en Reserva</button>`;
+            }
+          }
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                ${estadoBadge}
+                <span class="text-[11px] text-slate-400">${libro.anio}</span>
+              </div>
+              <h4 class="font-bold text-slate-900 text-sm">${libro.titulo}</h4>
+              <p class="text-xs text-slate-500 mb-2">${libro.autor}</p>
+              ${libro.tipo === 'fisico' ? `<p class="text-[11px] text-slate-400 mb-3"><i class="fa-solid fa-location-dot"></i> ${libro.ubicacion}</p>` : ''}
+            </div>
+            <div class="pt-2 border-t border-slate-100">
+              ${accionBtn}
+            </div>
+          `;
+          grid.appendChild(card);
+        }
+      });
+    }
+
+    function filtrarLibros() {
+      renderCatalogo();
+    }
+
+    function abrirDetalle(id) {
+      const libro = libros.find(l => l.id === id);
+      if (!libro) return;
+
+      document.getElementById('modal-titulo').innerText = libro.titulo;
+      document.getElementById('modal-autor').innerText = `${libro.autor} • ${libro.anio} • ${libro.ubicacion}`;
+      document.getElementById('modal-tag').innerText = libro.tipo === 'fisico' ? 'Libro Físico' : 'Recurso Digital';
+
+      const libres = libro.ejemplares.filter(e => e.estado === 'disponible').length;
+      const ejemplaresList = document.getElementById('modal-ejemplares');
+      ejemplaresList.innerHTML = '';
+
+      libro.ejemplares.forEach(e => {
+        const item = document.createElement('div');
+        const color = e.estado === 'disponible' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-50 border-slate-200';
+        item.className = `p-2 rounded border flex items-center justify-between ${color}`;
+        item.innerHTML = `
+          <span class="font-mono font-bold">${e.codigo}</span>
+          <span class="capitalize text-[11px]">${e.estado}</span>
+        `;
+        ejemplaresList.appendChild(item);
+      });
+
+      const resBox = document.getElementById('modal-reserva-box');
+      const actions = document.getElementById('modal-actions');
+      actions.innerHTML = '';
+
+      if (libres === 0) {
+        resBox.classList.remove('hidden');
+        actions.innerHTML = `
+          <button onclick="cerrarModal()" class="px-3 py-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100">Cerrar</button>
+          <button onclick="crearReserva(${libro.id})" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium shadow-sm">
+            Confirmar Reserva (Cola: #${libro.reservasCola.length + 1})
+          </button>
+        `;
+      } else {
+        resBox.classList.add('hidden');
+        actions.innerHTML = `
+          <button onclick="cerrarModal()" class="px-3 py-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100">Cerrar</button>
+          <button onclick="simularPrestamoDirecto(${libro.id})" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm">
+            Tomar en Préstamo
+          </button>
+        `;
+      }
+
+      document.getElementById('modal-detalle').classList.remove('hidden');
+      addLog("info", `/api/catalogo/${id}`, 200, `Consulta ficha técnica '${libro.titulo}'`);
+    }
+
+    function cerrarModal() {
+      document.getElementById('modal-detalle').classList.add('hidden');
+    }
+
+    function simularPrestamoDirecto(libroId) {
+      if (currentRole === 'estudiante' && prestamosActivos.filter(p => p.lectorId === 152).length >= 3) {
+        showToast("HTTP 422: Cupo excedido (Lector ya posee 3 libros)", true);
+        addLog("warn", "/api/prestamos", 422, "CUPO_EXCEDIDO: Estudiante 152 alcanzó límite de 3 libros");
+        cerrarModal();
+        return;
+      }
+
+      const libro = libros.find(l => l.id === libroId);
+      const ejemplarLibre = libro.ejemplares.find(e => e.estado === 'disponible');
+
+      if (!ejemplarLibre) {
+        showToast("HTTP 409: Sin ejemplares libres", true);
+        addLog("warn", "/api/prestamos", 409, "SIN_EJEMPLARES: No hay copias disponibles");
+        cerrarModal();
+        return;
+      }
+
+      ejemplarLibre.estado = "prestado";
+      const dias = currentRole === 'docente' ? 15 : 7;
+      const nuevoPrestamo = {
+        id: Math.floor(Math.random() * 900) + 100,
+        libroId: libro.id,
+        titulo: libro.titulo,
+        codigo: ejemplarLibre.codigo,
+        lectorId: 152,
+        lector: "Julieta Sdrubolini",
+        tipoLector: currentRole,
+        vence: "2026-11-13",
+        diasRestantes: dias
+      };
+
+      prestamosActivos.unshift(nuevoPrestamo);
+      cerrarModal();
+      showToast(`Préstamo creado: ${libro.titulo} (${ejemplarLibre.codigo})`);
+      addLog("info", "/api/prestamos", 201, `Préstamo registrado. Vence en ${dias} días (Strategy: ${currentRole})`);
+      renderCatalogo();
+      renderPanelLector();
+    }
+
+    function crearReserva(libroId) {
+      const libro = libros.find(l => l.id === libroId);
+      const yaAnotada = libro.reservasCola.some(r => r.lectorId === 152);
+
+      if (yaAnotada) {
+        showToast("HTTP 409: Ya estás anotado/a en la cola de reserva", true);
+        addLog("warn", "/api/reservas", 409, "RESERVA_DUPLICADA: Lector 152 ya está en cola");
+        cerrarModal();
+        return;
+      }
+
+      libro.reservasCola.push({
+        lectorId: 152,
+        nombre: "Julieta Sdrubolini",
+        fecha: new Date().toISOString().substring(0, 10)
+      });
+
+      cerrarModal();
+      showToast(`Reserva confirmada. Posición en cola: #${libro.reservasCola.length}`);
+      addLog("info", "/api/reservas", 201, `Reserva encolada para '${libro.titulo}' por Lector 152`);
+      renderCatalogo();
+      renderPanelLector();
+    }
+
+    function renderMostrador() {
+      const tbody = document.getElementById('tabla-prestamos-body');
+      tbody.innerHTML = '';
+      document.getElementById('total-activos-txt').innerText = `${prestamosActivos.length} préstamos registrados`;
+
+      prestamosActivos.forEach(p => {
+        const tr = document.createElement('tr');
+        const vencido = p.diasRestantes < 0;
+        const badgeColor = vencido ? 'bg-rose-100 text-rose-700' : p.diasRestantes <= 2 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+        const textoEstado = vencido ? `Venció hace ${Math.abs(p.diasRestantes)} d` : `Quedan ${p.diasRestantes} d`;
+
+        tr.innerHTML = `
+          <td class="p-3 font-mono font-bold">${p.codigo}</td>
+          <td class="p-3 font-medium">${p.titulo}</td>
+          <td class="p-3">${p.lector} <span class="text-[10px] text-slate-400">(${p.tipoLector})</span></td>
+          <td class="p-3 font-mono">${p.vence}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeColor}">${textoEstado}</span></td>
+          <td class="p-3 text-right">
+            <button onclick="devolverPrestamo(${p.id})" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded text-[11px] font-semibold transition">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Devolver
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function despacharPrestamoForm() {
+      const lectorId = parseInt(document.getElementById('form-lector-id').value);
+      const codigo = document.getElementById('form-ejemplar-codigo').value.trim().toUpperCase();
+
+      if (!codigo) {
+        showToast("Ingresá el código del ejemplar", true);
+        return;
+      }
+
+      // Buscar ejemplar
+      let libroEncontrado = null;
+      let ejemplarEncontrado = null;
+
+      libros.forEach(l => {
+        const ej = l.ejemplares.find(e => e.codigo === codigo);
+        if (ej) {
+          libroEncontrado = l;
+          ejemplarEncontrado = ej;
+        }
+      });
+
+      if (!ejemplarEncontrado) {
+        showToast("HTTP 404: Ejemplar no encontrado", true);
+        addLog("warn", "/api/prestamos", 404, `EJEMPLAR_NO_EXISTE: '${codigo}'`);
+        return;
+      }
+
+      if (ejemplarEncontrado.estado === 'prestado') {
+        showToast(`HTTP 409: El ejemplar ${codigo} ya está prestado`, true);
+        addLog("warn", "/api/prestamos", 409, `CONFLICT: Ejemplar ${codigo} no está libre`);
+        return;
+      }
+
+      ejemplarEncontrado.estado = 'prestado';
+      const esDocente = lectorId >= 800;
+      const dias = esDocente ? 15 : 7;
+
+      prestamosActivos.unshift({
+        id: Math.floor(Math.random() * 900) + 100,
+        libroId: libroEncontrado.id,
+        titulo: libroEncontrado.titulo,
+        codigo: ejemplarEncontrado.codigo,
+        lectorId: lectorId,
+        lector: esDocente ? "Docente Asignado" : "Estudiante Regular",
+        tipoLector: esDocente ? "docente" : "estudiante",
+        vence: "2026-11-13",
+        diasRestantes: dias
+      });
+
+      document.getElementById('form-ejemplar-codigo').value = '';
+      showToast(`Préstamo despachado exitosamente: ${codigo}`);
+      addLog("info", "/api/prestamos", 201, `Préstamo de ${codigo} concedido al lector ${lectorId}`);
+      renderMostrador();
+      renderCatalogo();
+    }
+
+    function devolverPrestamo(prestamoId) {
+      const index = prestamosActivos.findIndex(p => p.id === prestamoId);
+      if (index === -1) return;
+
+      const p = prestamosActivos[index];
+      prestamosActivos.splice(index, 1);
+
+      // Liberar ejemplar
+      const libro = libros.find(l => l.id === p.libroId);
+      const ej = libro.ejemplares.find(e => e.codigo === p.codigo);
+      ej.estado = "disponible";
+
+      addLog("info", `/api/prestamos/${p.id}/devolucion`, 200, `Devolución de ejemplar ${p.codigo} registrada`);
+
+      // Verificar patrón Observer: ¿Hay reservas en cola para este libro?
+      if (libro.reservasCola.length > 0) {
+        const siguiente = libro.reservasCola.shift();
+        ej.estado = "reservado";
+        mailCount++;
+        document.getElementById('metric-mails').innerText = mailCount;
+        showToast(`Ejemplar devuelto. ¡Observer activado! Mail enviado a ${siguiente.nombre}`);
+        addLog("info", "/api/notificaciones", 200, `[EVENT: devolucion_registrada] Mailpit envió aviso de reserva disponible a lector ${siguiente.lectorId}`);
+      } else {
+        showToast(`Ejemplar ${p.codigo} devuelto al estante.`);
+      }
+
+      renderMostrador();
+      renderCatalogo();
+      renderPanelLector();
+    }
+
+    function renderPanelLector() {
+      const misPrestamos = prestamosActivos.filter(p => p.lectorId === 152);
+      const misPrestamosBox = document.getElementById('mis-prestamos-list');
+      misPrestamosBox.innerHTML = '';
+
+      document.getElementById('lector-prestamos-count').innerText = `${misPrestamos.length} / ${currentRole === 'docente' ? 5 : 3}`;
+
+      if (misPrestamos.length === 0) {
+        misPrestamosBox.innerHTML = '<p class="text-xs text-slate-400">No tenés préstamos activos en este momento.</p>';
+      } else {
+        misPrestamos.forEach(p => {
+          const item = document.createElement('div');
+          const vencido = p.diasRestantes < 0;
+          item.className = "p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between";
+          item.innerHTML = `
+            <div>
+              <p class="font-bold text-slate-900">${p.titulo}</p>
+              <p class="text-[11px] text-slate-500 font-mono">Ejemplar: ${p.codigo} • Vence: ${p.vence}</p>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${vencido ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+              ${vencido ? 'Vencido' : `${p.diasRestantes} días`}
+            </span>
+          `;
+          misPrestamosBox.appendChild(item);
+        });
+      }
+
+      // Reservas en espera de Julieta
+      const misReservasBox = document.getElementById('mis-reservas-list');
+      misReservasBox.innerHTML = '';
+      let reservasTotal = 0;
+
+      libros.forEach(l => {
+        const idx = l.reservasCola.findIndex(r => r.lectorId === 152);
+        if (idx !== -1) {
+          reservasTotal++;
+          const item = document.createElement('div');
+          item.className = "p-3 rounded-lg border border-amber-200 bg-amber-50/50 flex items-center justify-between";
+          item.innerHTML = `
+            <div>
+              <p class="font-bold text-slate-900">${l.titulo}</p>
+              <p class="text-[11px] text-slate-500">Posición en la cola de espera: #${idx + 1}</p>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">En espera</span>
+          `;
+          misReservasBox.appendChild(item);
+        }
+      });
+
+      document.getElementById('lector-reservas-count').innerText = reservasTotal;
+      if (reservasTotal === 0) {
+        misReservasBox.innerHTML = '<p class="text-xs text-slate-400">No tenés solicitudes de reserva pendientes.</p>';
+      }
+    }
+
+    // Inicialización al cargar la página
+    renderCatalogo();
+    addLog("info", "/api/auth/login", 200, "Lector autenticado con token Bearer");
+  </script>
+</body>
+</html>
